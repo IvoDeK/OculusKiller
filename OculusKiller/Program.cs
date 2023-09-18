@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Web.Script.Serialization;
-using System.Threading.Tasks;
 
 namespace OculusKiller
 {
@@ -11,12 +11,7 @@ namespace OculusKiller
     {
         private static string logPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "OculusKiller", "logs.txt");
 
-        public static void Main()
-        {
-            MainAsync().GetAwaiter().GetResult();
-        }
-
-        public static async Task MainAsync()
+        public static async Task Main()
         {
             try
             {
@@ -32,18 +27,46 @@ namespace OculusKiller
                 string startupPath = result.Item1;
                 string vrServerPath = result.Item2;
 
-                var process = Process.Start(startupPath);
-                if (process != null)
+                const int maxRetries = 2;
+                const int delayBetweenRetries = 2000; // 2 seconds
+                bool processStarted = false;
+
+                for (int retry = 0; retry < maxRetries; retry++)
                 {
-                    await process.WaitForExitAsync();
+                    try
+                    {
+                        var process = Process.Start(startupPath);
+                        if (process != null)
+                        {
+                            await process.WaitForExitAsync();
+                            processStarted = true;
+                            break;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Log($"Attempt {retry + 1} to start SteamVR failed: {e.Message}");
+                        if (retry < maxRetries - 1)
+                        {
+                            Log("Retrying...");
+                            await Task.Delay(delayBetweenRetries);
+                        }
+                    }
+                }
+
+                if (!processStarted)
+                {
+                    Log("Failed to start SteamVR after multiple attempts.");
+                    MessageBox.Show("Failed to start SteamVR after multiple attempts.");
+                    return;
                 }
 
                 MonitorProcesses(oculusPath, vrServerPath);
             }
             catch (Exception e)
             {
-                Log($"An exception occurred: {e.Message}");
-                MessageBox.Show($"An exception occured while attempting to find/start SteamVR...\n\nMessage: {e}");
+                Log($"An unexpected exception occurred: {e.Message}");
+                MessageBox.Show($"An unexpected exception occurred: {e.Message}");
             }
         }
 
@@ -73,13 +96,20 @@ namespace OculusKiller
                 }
 
                 vrServerProcess.EnableRaisingEvents = true;
-                vrServerProcess.Exited += (sender, e) =>
+                vrServerProcess.Exited += async (sender, e) =>
                 {
                     Log("SteamVR vrserver exited.");
                     Process ovrServerProcess = GetProcessByNameAndPath("OVRServer_x64", oculusPath);
                     if (ovrServerProcess != null)
                     {
-                        GracefullyShutdownProcess(ovrServerProcess, 3000);
+                        Log("Attempting graceful shutdown of Oculus runtime...");
+                        ovrServerProcess.CloseMainWindow();
+
+                        if (!ovrServerProcess.WaitForExit(3000))
+                        {
+                            Log("Oculus runtime did not shut down gracefully. Forcing shutdown...");
+                            ovrServerProcess.Kill();
+                        }
                     }
                 };
             }
@@ -93,36 +123,6 @@ namespace OculusKiller
         private static Process GetProcessByNameAndPath(string processName, string processPath)
         {
             return Array.Find(Process.GetProcessesByName(processName), process => process.MainModule.FileName == processPath);
-        }
-
-        private static void GracefullyShutdownProcess(Process process, int waitTimeMilliseconds = 3000)
-        {
-            if (process == null || process.HasExited)
-            {
-                return;
-            }
-
-            try
-            {
-                // Send a close signal
-                process.CloseMainWindow();
-
-                // Wait for the process to exit or for the timeout to elapse
-                if (!process.WaitForExit(waitTimeMilliseconds))
-                {
-                    // If the process hasn't exited, forcibly terminate it
-                    process.Kill();
-                    Log($"Forcibly terminated process {process.ProcessName} after waiting for {waitTimeMilliseconds} milliseconds.");
-                }
-                else
-                {
-                    Log($"Process {process.ProcessName} exited gracefully.");
-                }
-            }
-            catch (Exception e)
-            {
-                Log($"Error during graceful shutdown of process {process.ProcessName}: {e.Message}");
-            }
         }
 
         static string GetOculusPath()
