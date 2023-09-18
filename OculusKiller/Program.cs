@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows.Forms;
 using System.Web.Script.Serialization;
+using System.Threading.Tasks;
 
 namespace OculusKiller
 {
@@ -11,6 +12,11 @@ namespace OculusKiller
         private static string logPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "OculusKiller", "logs.txt");
 
         public static void Main()
+        {
+            MainAsync().GetAwaiter().GetResult();
+        }
+
+        public static async Task MainAsync()
         {
             try
             {
@@ -26,7 +32,11 @@ namespace OculusKiller
                 string startupPath = result.Item1;
                 string vrServerPath = result.Item2;
 
-                Process.Start(startupPath).WaitForExit();
+                var process = Process.Start(startupPath);
+                if (process != null)
+                {
+                    await process.WaitForExitAsync();
+                }
 
                 MonitorProcesses(oculusPath, vrServerPath);
             }
