@@ -69,8 +69,7 @@ namespace OculusKiller
                     Process ovrServerProcess = GetProcessByNameAndPath("OVRServer_x64", oculusPath);
                     if (ovrServerProcess != null)
                     {
-                        Log("Killing Oculus runtime...");
-                        ovrServerProcess.Kill();
+                        GracefullyShutdownProcess(ovrServerProcess, 3000);
                     }
                 };
             }
@@ -84,6 +83,36 @@ namespace OculusKiller
         private static Process GetProcessByNameAndPath(string processName, string processPath)
         {
             return Array.Find(Process.GetProcessesByName(processName), process => process.MainModule.FileName == processPath);
+        }
+
+        private static void GracefullyShutdownProcess(Process process, int waitTimeMilliseconds = 3000)
+        {
+            if (process == null || process.HasExited)
+            {
+                return;
+            }
+
+            try
+            {
+                // Send a close signal
+                process.CloseMainWindow();
+
+                // Wait for the process to exit or for the timeout to elapse
+                if (!process.WaitForExit(waitTimeMilliseconds))
+                {
+                    // If the process hasn't exited, forcibly terminate it
+                    process.Kill();
+                    Log($"Forcibly terminated process {process.ProcessName} after waiting for {waitTimeMilliseconds} milliseconds.");
+                }
+                else
+                {
+                    Log($"Process {process.ProcessName} exited gracefully.");
+                }
+            }
+            catch (Exception e)
+            {
+                Log($"Error during graceful shutdown of process {process.ProcessName}: {e.Message}");
+            }
         }
 
         static string GetOculusPath()
