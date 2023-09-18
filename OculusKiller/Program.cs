@@ -107,16 +107,30 @@ namespace OculusKiller
                 vrServerProcess.Exited += (sender, e) =>
                 {
                     Log("SteamVR vrserver exited.");
-                    Process ovrServerProcess = GetProcessByNameAndPath("OVRServer_x64", oculusPath);
-                    if (ovrServerProcess != null)
-                    {
-                        Log("Attempting graceful shutdown of Oculus runtime...");
-                        ovrServerProcess.CloseMainWindow();
 
-                        if (!ovrServerProcess.WaitForExit(3000))
+                    // Ensure SteamVR is completely exited
+                    var steamVRProcesses = Process.GetProcessesByName("vrserver");
+                    foreach (var process in steamVRProcesses)
+                    {
+                        process.CloseMainWindow();
+                        if (!process.WaitForExit(3000))
                         {
-                            Log("Oculus runtime did not shut down gracefully. Forcing shutdown...");
-                            ovrServerProcess.Kill();
+                            Log("SteamVR did not shut down gracefully. Forcing shutdown...");
+                            process.Kill();
+                        }
+                    }
+
+                    // Attempt graceful shutdown of OculusDash.exe
+                    Process oculusDashProcess = GetProcessByNameAndPath("OculusDash", oculusPath);
+                    if (oculusDashProcess != null)
+                    {
+                        Log("Attempting graceful shutdown of OculusDash...");
+                        oculusDashProcess.CloseMainWindow();
+
+                        if (!oculusDashProcess.WaitForExit(3000))
+                        {
+                            Log("OculusDash did not shut down gracefully. Forcing shutdown...");
+                            oculusDashProcess.Kill();
                         }
                     }
                 };
