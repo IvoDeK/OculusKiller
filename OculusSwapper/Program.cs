@@ -276,16 +276,45 @@ namespace OculusSwapper
 
         private static void StopOculusRuntimes(object? sender, EventArgs e)
         {
-            // This is a placeholder. The exact method to stop the Oculus Runtimes might vary.
-            // It might involve terminating specific processes or stopping a service.
-            MessageBox.Show("Stop Oculus Runtimes functionality not implemented.", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            string[] oculusRuntimeProcesses = { "OVRRedir", "OVRServer_x64", "OVRServiceLauncher" };
+
+            foreach (var processName in oculusRuntimeProcesses)
+            {
+                foreach (var process in Process.GetProcessesByName(processName))
+                {
+                    try
+                    {
+                        process.Kill();
+                    }
+                    catch
+                    {
+                        MessageBox.Show($"Failed to terminate {processName}. Ensure you have the necessary permissions.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+            }
         }
 
         private static void RestartOculusRuntimes(object? sender, EventArgs e)
         {
-            // This is a placeholder. The exact method to restart the Oculus Runtimes might vary.
-            // It might involve restarting specific processes or services.
-            MessageBox.Show("Restart Oculus Runtimes functionality not implemented.", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            string oculusBasePath = @"C:\Program Files\Oculus\Support\oculus-runtime";
+            string[] oculusRuntimes =
+            {
+        Path.Combine(oculusBasePath, "OVRRedir.exe"),
+        Path.Combine(oculusBasePath, "OVRServer_x64.exe"),
+        Path.Combine(oculusBasePath, "OVRServiceLauncher.exe")
+            };
+
+            foreach (var runtime in oculusRuntimes)
+            {
+                try
+                {
+                    Process.Start(runtime);
+                }
+                catch
+                {
+                    MessageBox.Show($"Failed to start {Path.GetFileName(runtime)}. Ensure you have the necessary permissions and the file exists.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
         }
     }
 }
