@@ -7,8 +7,6 @@ using System.Reflection;
 using System.Timers;
 using System.Text;
 
-
-
 namespace OculusSwapper
 {
     static class Program
@@ -51,6 +49,9 @@ namespace OculusSwapper
             trayMenu = new ContextMenuStrip();
             trayMenu.Items.Add("Swap to Custom", null, SwapToCustom);
             trayMenu.Items.Add("Swap to OculusDash", null, SwapToOculusDash);
+            trayMenu.Items.Add("Terminate OculusDash", null, TerminateOculusDash);
+            trayMenu.Items.Add("Stop Oculus Runtimes", null, StopOculusRuntimes);
+            trayMenu.Items.Add("Restart Oculus Runtimes", null, RestartOculusRuntimes);
             versionMenuItem = new ToolStripMenuItem { Enabled = false }; // Non-clickable menu item
             trayMenu.Items.Add(versionMenuItem);
             trayMenu.Items.Add("Exit", null, OnExit);
@@ -256,6 +257,35 @@ namespace OculusSwapper
                                "3. 'Exit' to close the application.";
 
             MessageBox.Show(aboutText, "About OculusSwapper", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        private static void TerminateOculusDash(object? sender, EventArgs e)
+        {
+            foreach (var process in Process.GetProcessesByName("OculusDash"))
+            {
+                try
+                {
+                    process.Kill();
+                }
+                catch
+                {
+                    MessageBox.Show("Failed to terminate OculusDash.exe. Ensure you have the necessary permissions.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private static void StopOculusRuntimes(object? sender, EventArgs e)
+        {
+            // This is a placeholder. The exact method to stop the Oculus Runtimes might vary.
+            // It might involve terminating specific processes or stopping a service.
+            MessageBox.Show("Stop Oculus Runtimes functionality not implemented.", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        private static void RestartOculusRuntimes(object? sender, EventArgs e)
+        {
+            // This is a placeholder. The exact method to restart the Oculus Runtimes might vary.
+            // It might involve restarting specific processes or services.
+            MessageBox.Show("Restart Oculus Runtimes functionality not implemented.", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
     }
 }
