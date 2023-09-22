@@ -84,6 +84,7 @@ namespace OculusSwapper
             CheckCurrentState(null, null);
 
             Application.Run();
+            OculusDashMonitor.StartMonitoring();
         }
 
         private static bool IsAdministrator()
